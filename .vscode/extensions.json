@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "charliermarsh.ruff",
+    "ms-python.vscode-pylance",
+    "ms-vscode-remote.remote-containers",
+    "eamodio.gitlens",
+    "ms-python.debugpy",
+    "tamasfe.even-better-toml"
+  ]
+}

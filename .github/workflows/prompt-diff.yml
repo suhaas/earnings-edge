@@ -1,0 +1,21 @@
+name: Prompt Diff
+
+on:
+  pull_request:
+    paths:
+      - "prompts/**"
+
+jobs:
+  prompt-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect prompt changes
+        run: |
+          git diff origin/main -- prompts/ | tee prompt-diff.txt
+      - name: Require human review
+        run: |
+          echo "Prompt changes detected. Human review required."
+          exit 0  # Let eval gate decide pass/fail

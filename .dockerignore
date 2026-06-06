@@ -1,0 +1,18 @@
+# Docker build artifacts
+*.pyc
+__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
+venv/
+.venv/
+
+# Environment
+.env
+.env.local
+
+# Large files
+*.tar.gz
+*.zip
+uv.lock
+data/

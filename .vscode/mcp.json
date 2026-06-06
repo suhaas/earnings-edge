@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "uv",
+      "args": ["run", "github-mcp-server"],
+      "env": {
+        "GITHUB_TOKEN": "${env:GITHUB_TOKEN}"
+      }
+    },
+    "postgres": {
+      "command": "uv",
+      "args": ["run", "postgres-mcp-server"],
+      "env": {
+        "DATABASE_URL": "${env:DATABASE_URL}"
+      }
+    },
+    "playwright": {
+      "command": "uv",
+      "args": ["run", "playwright-mcp-server"]
+    }
+  }
+}

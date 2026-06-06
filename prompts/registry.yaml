@@ -1,0 +1,36 @@
+roles:
+  supervisor:
+    active_version: v1
+    versions:
+      v1:
+        date: "2026-02-05"
+        author: "system"
+        eval_score: 0.0
+  researcher:
+    active_version: v1
+    versions:
+      v1:
+        date: "2026-02-05"
+        author: "system"
+        eval_score: 0.0
+  analyst:
+    active_version: v1
+    versions:
+      v1:
+        date: "2026-02-05"
+        author: "system"
+        eval_score: 0.0
+  coder:
+    active_version: v1
+    versions:
+      v1:
+        date: "2026-02-05"
+        author: "system"
+        eval_score: 0.0
+  critic:
+    active_version: v1
+    versions:
+      v1:
+        date: "2026-02-05"
+        author: "system"
+        eval_score: 0.0

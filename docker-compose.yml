@@ -1,0 +1,81 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: agentic
+      POSTGRES_PASSWORD: dev-password
+      POSTGRES_DB: earnings_edge
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentic"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  vectordb:
+    # Option 1: pgvector (runs in Postgres)
+    # image: pgvector/pgvector:pg16
+    # (Use same postgres service above with pgvector extension)
+    
+    # Option 2: Qdrant standalone
+    image: qdrant/qdrant:latest
+    environment:
+      QDRANT__API_KEY: dev-key
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    ports:
+      - "4317:4317"  # OTLP gRPC
+      - "4318:4318"  # OTLP HTTP
+      - "8888:8888"  # Prometheus metrics
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    depends_on:
+      - postgres
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+
+  app:
+    build: .
+    environment:
+      PYTHONUNBUFFERED: "1"
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      DATABASE_URL: postgresql://agentic:dev-password@postgres:5432/earnings_edge
+      VECTORDB_URL: http://vectordb:6333
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      vectordb:
+        condition: service_started
+      otel-collector:
+        condition: service_started
+    volumes:
+      - .:/workspace
+    command: python -m agentic_app.main
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  prometheus_data:

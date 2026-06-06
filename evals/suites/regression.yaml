@@ -1,0 +1,14 @@
+suites:
+  researcher_baseline:
+    dataset: evals/datasets/researcher_qa.jsonl
+    agent: researcher
+    scorer: llm_judge
+    threshold: 0.85
+    timeout_per_case: 30
+
+  end_to_end:
+    dataset: evals/datasets/end_to_end.jsonl
+    agent: supervisor
+    scorer: llm_judge
+    threshold: 0.80
+    timeout_per_case: 60

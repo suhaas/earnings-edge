@@ -1,0 +1,108 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "earnings-edge"
+version = "0.1.0"
+description = "Multi-agent AI system for financial analysis and earnings research"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "Your Name", email = "your.email@example.com" }
+]
+
+dependencies = [
+  # Core agent framework
+  "langgraph>=0.1.0",
+  "langchain-anthropic>=0.1.0",
+  "langchain-core>=0.1.0",
+  
+  # Async & HTTP
+  "httpx>=0.25.0",
+  
+  # Data processing
+  "pandas>=2.0.0",
+  "numpy>=1.24.0",
+  "pydantic>=2.0.0",
+  "pydantic-settings>=2.0.0",
+  
+  # Database & ORM
+  "sqlalchemy>=2.0.0",
+  "asyncpg>=0.29.0",  # PostgreSQL async driver
+  "psycopg2-binary>=2.9.0",
+  
+  # Vector DB
+  "pgvector>=0.2.0",  # Optional: if using pgvector
+  
+  # Embeddings
+  "sentence-transformers>=2.2.0",
+  
+  # Logging & observability
+  "structlog>=23.0.0",
+  "opentelemetry-api>=1.20.0",
+  "opentelemetry-sdk>=1.20.0",
+  "opentelemetry-exporter-otlp>=0.39b0",
+  "langsmith>=0.0.50",
+  
+  # CLI
+  "typer>=0.9.0",
+  "rich>=13.0.0",
+  
+  # FastAPI (optional: if building HTTP API)
+  "fastapi>=0.104.0",
+  "uvicorn[standard]>=0.24.0",
+  
+  # Web scraping & utilities
+  "beautifulsoup4>=4.12.0",
+  "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4.0",
+  "pytest-asyncio>=0.21.0",
+  "pytest-cov>=4.1.0",
+  "ruff>=0.1.0",
+  "mypy>=1.6.0",
+  "types-requests>=2.31.0",
+  "pre-commit>=3.5.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+  "pytest>=7.4.0",
+  "pytest-asyncio>=0.21.0",
+  "pytest-cov>=4.1.0",
+  "ruff>=0.1.0",
+  "mypy>=1.6.0",
+  "types-requests>=2.31.0",
+  "pre-commit>=3.5.0",
+]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "--cov=src/agentic_app --cov-report=term-missing"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+strict = true
+ignore_missing_imports = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "TRY"]
+ignore = ["E501"]  # Line too long (handled by formatter)
+
+[tool.ruff.lint.isort]
+known-first-party = ["agentic_app"]

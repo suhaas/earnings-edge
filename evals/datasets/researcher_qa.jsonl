@@ -1,0 +1,2 @@
+{"input": "Research Q3 2024 earnings for Microsoft", "expected_output": "MSFT Q3 2024 revenue, EPS, guidance", "rubric": "Must extract key financial metrics"}
+{"input": "Find analyst sentiment on Apple", "expected_output": "Analyst ratings, target prices, consensus", "rubric": "Must include multiple analyst perspectives"}

@@ -1,0 +1,49 @@
+# Exclude from Claude Code context to reduce token usage
+
+# Lock files (very large)
+uv.lock
+requirements.txt
+poetry.lock
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Data (usually large)
+data/
+*.parquet
+*.csv
+*.json
+
+# Secrets
+.env
+.env.local
+.env.*.local
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+
+# IDE (optional, depends on your preference)
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test outputs
+htmlcov/
+.coverage
+
+# Logs
+logs/
+*.log

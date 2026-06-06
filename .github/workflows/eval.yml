@@ -1,0 +1,51 @@
+name: Eval Gate
+
+on:
+  pull_request:
+    paths:
+      - "prompts/**"
+      - "src/agents/**"
+      - "src/tools/**"
+      - "evals/**"
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - run: pip install uv
+      - run: uv sync --all-extras
+      - env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+        run: |
+          git fetch origin main
+          python evals/run.py --baseline origin/main --output eval-report.json
+      - name: Check eval results
+        run: |
+          python scripts/check_eval_regression.py eval-report.json
+      - name: Upload eval report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: eval-report
+          path: eval-report.json
+      - name: Comment on PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (!fs.existsSync('eval-report.json')) return;
+            const report = JSON.parse(fs.readFileSync('eval-report.json', 'utf8'));
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Eval Report\n\nBaseline: ${report.baseline_score.toFixed(3)}\nCurrent: ${report.current_score.toFixed(3)}\nDelta: ${(report.current_score - report.baseline_score).toFixed(3)}`
+            });

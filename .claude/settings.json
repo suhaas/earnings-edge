@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "file.read",
+      "file.write",
+      "file.create",
+      "file.delete",
+      "terminal.create",
+      "terminal.execute",
+      "web.access"
+    ],
+    "deny": []
+  },
+  "defaultModel": "claude-3-5-sonnet-20241022",
+  "attributionRequired": true,
+  "editorIntegration": {
+    "autoSave": true,
+    "formatOnSave": true
+  }
+}
