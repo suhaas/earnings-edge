@@ -100,7 +100,7 @@ evals/                     # First-class eval harness
 ├── datasets/              # Versioned JSONL: inputs + expected outcomes
 ├── scorers/               # llm_judge.py, trajectory.py (scoring functions)
 ├── suites/                # Suite definitions: dataset → agent → scorer → threshold
-└── run.py                 # Eval runner (used by eval.yml CI gate)
+└── run.py                 # Eval runner (used by the ci.yml eval-gate job)
 
 tests/
 ├── conftest.py            # Shared fixtures: fake Anthropic client, in-memory store
@@ -143,7 +143,7 @@ docker-compose up
 
 ### CI/CD Gates
 - **`ci.yml`**: Lint + type-check + unit/integration tests on every PR
-- **`eval.yml`**: AGENT EVAL GATE — runs eval suite, fails on score regression vs. main (production-distinguishing)
+- **`ci.yml` `eval-gate` job**: AGENT EVAL GATE — runs eval suite, fails on score regression vs. main (production-distinguishing)
 - **`prompt-diff.yml`**: Detects changes under `prompts/` and forces eval run + human review
 - **`release.yml`**: Build + push image, tag, changelog
 
@@ -199,7 +199,7 @@ docker-compose up
 - **Datasets**: Versioned JSONL in `evals/datasets/` (inputs + expected outcomes/rubrics)
 - **Scorers**: Scoring functions in `evals/scorers/` (exact-match, LLM-as-judge, trajectory)
 - **Suites**: Bind datasets → agents → scorers → pass/fail thresholds in `evals/suites/`
-- **Run**: `make eval` (locally) or triggered by `eval.yml` on PR
+- **Run**: `make eval` (locally) or the `ci.yml` `eval-gate` job on PR
 - **Regression gate**: If score < threshold, PR fails; fix prompt or accept regression with justification
 
 ---

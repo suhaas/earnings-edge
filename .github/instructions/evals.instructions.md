@@ -88,13 +88,13 @@ suites:
 # Local eval run
 make eval
 
-# CI/CD eval gate (triggered on prompt changes)
-# See: .github/workflows/eval.yml
+# CI/CD eval gate (runs on every PR)
+# See: .github/workflows/ci.yml (eval-gate job)
 ```
 
 ## Regression Gate
 
-- **CI/CD**: `eval.yml` runs on every PR that touches `prompts/`, `src/agents/`, or `src/tools/`
+- **CI/CD**: the `eval-gate` job in `ci.yml` runs on every PR
 - **Baseline**: Eval scores from `main` branch become the baseline
 - **Failure**: If score < baseline, PR fails (must fix or justify regression)
 - **Metadata**: Eval reports attached to PR (JSON + summary)

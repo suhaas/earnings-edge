@@ -61,6 +61,10 @@ jobs:
   eval-gate:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    # Allow the github-script step to post a PR comment (default token is read-only).
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -79,10 +83,14 @@ jobs:
         with:
           script: |
             const fs = require('fs');
+            if (!fs.existsSync('eval-results.json')) {
+              core.info('No eval-results.json produced; skipping comment.');
+              return;
+            }
             const results = JSON.parse(fs.readFileSync('eval-results.json', 'utf8'));
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## Eval Results\n\n${JSON.stringify(results, null, 2)}`
+              body: `## Eval Results\n\n\`\`\`json\n${JSON.stringify(results, null, 2)}\n\`\`\``
             });

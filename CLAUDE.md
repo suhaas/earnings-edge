@@ -99,7 +99,7 @@ make trace
 2. **Local validation**: `make lint` (ruff + mypy) before pushing
 3. **Test locally**: `make test` (unit + integration)
 4. **Eval gate**: `make eval` to validate against baseline
-5. **Push**: Triggers CI/CD (ci.yml → eval.yml → release.yml)
+5. **Push**: Triggers CI/CD (ci.yml — lint, prompt-checks, test, eval-gate — then release.yml)
 6. **Human review**: Check CODEOWNERS for prompt changes
 
 ---

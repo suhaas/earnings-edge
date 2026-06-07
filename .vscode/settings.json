@@ -11,6 +11,7 @@
     }
   },
   "files.autoSave": "onFocusChange",
+  "files.eol": "\n",
   "editor.rulers": [100],
   "editor.insertSpaces": true,
   "editor.tabSize": 2,

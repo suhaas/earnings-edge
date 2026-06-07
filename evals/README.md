@@ -53,6 +53,6 @@ suites:
 
 ## CI/CD Integration
 
-- **eval.yml**: Runs on PR if `prompts/`, `agents/`, or `tools/` change
+- **`eval-gate` job (in `ci.yml`)**: Runs `make eval` on every PR
 - **Regression gate**: Fails PR if score < baseline (unless justified)
 - **Report**: Attached to PR with delta + per-case scores

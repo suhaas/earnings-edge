@@ -1,6 +1,6 @@
 # ADR-0003: Eval Gate in CI
 
-**Status**: Accepted
+**Status**: Superseded by [ADR-0004](0004-consolidate-eval-gate-into-ci.md)
 **Date**: 2026-02-05
 
 ## Context

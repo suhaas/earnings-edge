@@ -1,0 +1,18 @@
+# gitleaks configuration for earnings-edge.
+# Extends the built-in ruleset and allowlists known LOCAL-DEV dummy credentials so
+# the pre-commit / CI secret scan passes without --no-verify. These are NOT real
+# secrets: they only match the throwaway Postgres password used by the local
+# docker-compose stack and VS Code launch config. Real secrets live in .env (git-ignored).
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Local-dev dummy credentials (docker-compose / launch.json / .env.example)"
+regexes = [
+  '''dev-password''',
+  '''agentic:(dev-)?password@''',
+]
+paths = [
+  '''\.env\.example$''',
+]
