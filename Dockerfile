@@ -40,9 +40,19 @@ COPY src/ ./src/
 COPY prompts/ ./prompts/
 COPY skills/ ./skills/
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import httpx; httpx.get('http://localhost:8000/health')" || exit 1
+# Make the src/ layout importable as the `agentic_app` package (no pip install of the
+# project itself in this image, so the package dir must be on PYTHONPATH).
+ENV PYTHONPATH=/app/src
 
-# Run the application
-CMD ["python", "-m", "agentic_app.main"]
+# No HEALTHCHECK: this container runs the CLI as a one-shot batch job, not an HTTP
+# server, so there is nothing on :8000 to probe. If you switch the CMD below to serve
+# the FastAPI app (`uvicorn agentic_app.api.app:app --host 0.0.0.0 --port 8000`),
+# restore a healthcheck such as:
+#   HEALTHCHECK CMD python -c "import httpx; httpx.get('http://localhost:8000/health')" || exit 1
+
+# If the image build fails with certificate errors, it's the same TLS-interception proxy —
+# the in-container pip install is hitting it. You'd need to inject your proxy's root CA into
+# the build (out of scope here; the native path avoids this via UV_SYSTEM_CERTS).
+
+# Run the application (the `run` subcommand; override args via docker-compose `command:`)
+CMD ["python", "-m", "agentic_app.main", "run"]

@@ -15,6 +15,9 @@ authors = [
 dependencies = [
   # Core agent framework
   "langgraph>=0.1.0",
+  "langgraph-checkpoint-sqlite>=2.0.0",    # SqliteSaver (local checkpoints)
+  "langgraph-checkpoint-postgres>=2.0.0",  # PostgresSaver/PostgresStore (durable, prod)
+  "psycopg[binary]>=3.1.0",                # psycopg3 driver for the Postgres backend
   "langchain-anthropic>=0.1.0",
   "langchain-core>=0.1.0",
   
@@ -26,6 +29,7 @@ dependencies = [
   "numpy>=1.24.0",
   "pydantic>=2.0.0",
   "pydantic-settings>=2.0.0",
+  "pyyaml>=6.0",            # PromptLoader parses prompts/registry.yaml at runtime
   
   # Database & ORM
   "sqlalchemy>=2.0.0",
@@ -56,6 +60,16 @@ dependencies = [
   # Web scraping & utilities
   "beautifulsoup4>=4.12.0",
   "requests>=2.31.0",
+
+  # Agent integrations: market/filing data, delivery, eval
+  "python-dotenv>=1.0.0",
+  "earningscall",       # EarningsCall transcripts (ingestion_agent)
+  "edgartools",         # SEC EDGAR 8-K filings; imports as `edgar` (ingestion_agent)
+  "yfinance",           # consensus estimates (kpi_agent)
+  "langchain",          # create_agent (delivery_agent)
+  "openevals",          # LLM-as-judge grounding (evaluation_agent)
+  "composio",           # multi-toolkit delivery (delivery_agent)
+  "composio-langchain", # Composio LangChain provider (delivery_agent)
 ]
 
 [project.optional-dependencies]
@@ -69,8 +83,11 @@ dev = [
   "pre-commit>=3.5.0",
 ]
 
-[tool.uv]
-dev-dependencies = [
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentic_app"]
+
+[dependency-groups]
+dev = [
   "pytest>=7.4.0",
   "pytest-asyncio>=0.21.0",
   "pytest-cov>=4.1.0",
@@ -78,13 +95,14 @@ dev-dependencies = [
   "mypy>=1.6.0",
   "types-requests>=2.31.0",
   "pre-commit>=3.5.0",
+  "types-pyyaml>=6.0",    # type stubs for pyyaml (used by PromptLoader + registry tests)
 ]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "--cov=src/agentic_app --cov-report=term-missing"
+addopts = "--cov=src/agentic_app --cov-report=term-missing --import-mode=importlib"
 
 [tool.mypy]
 python_version = "3.11"
@@ -96,13 +114,26 @@ check_untyped_defs = true
 strict = true
 ignore_missing_imports = false
 
+# Third-party libs that ship no type stubs (or whose stubs lag the runtime API).
+# We keep strict typing on our own code; these are treated as untyped at the boundary.
+[[tool.mypy.overrides]]
+module = [
+  "yfinance.*",
+  "earningscall.*",
+  "edgar.*",
+]
+ignore_missing_imports = true
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "TRY"]
-ignore = ["E501"]  # Line too long (handled by formatter)
+ignore = [
+  "E501",    # Line too long (handled by formatter)
+  "TRY003",  # Long messages outside exception class (noisy; we favor contextual messages)
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["agentic_app"]

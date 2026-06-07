@@ -1,4 +1,7 @@
 {
+  "env": {
+    "UV_SYSTEM_CERTS": "1"
+  },
   "permissions": {
     "allow": [
       "file.read",

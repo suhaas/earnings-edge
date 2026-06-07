@@ -24,4 +24,14 @@ repos:
         name: detect-secrets (gitleaks)
         entry: gitleaks detect --verbose --redact
         language: system
-        stages: [commit]
+        stages: [pre-commit]
+
+      # Deterministic "prompt-linter": enforce that prompts, registry.yaml and the
+      # agent roles stay in sync and every prompt renders. Runs whenever a prompt,
+      # the registry, the loader, or a prompt test changes.
+      - id: prompt-consistency
+        name: prompt registry + loader consistency
+        entry: pytest tests/unit/test_prompt_registry.py tests/unit/test_prompt_loader.py -q
+        language: system
+        pass_filenames: false
+        files: ^(prompts/|src/agentic_app/prompts/|src/agentic_app/agents/|tests/unit/test_prompt_).*

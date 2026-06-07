@@ -73,7 +73,7 @@ services:
         condition: service_started
     volumes:
       - .:/workspace
-    command: python -m agentic_app.main
+    command: python -m agentic_app.main run --ticker NVDA --year 2025 --quarter 4
 
 volumes:
   postgres_data:
