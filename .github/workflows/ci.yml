@@ -18,6 +18,20 @@ jobs:
       - run: uv sync --all-extras
       - run: make lint
 
+  prompt-checks:
+    # Deterministic prompt-linter: registry <-> prompts <-> agent roles stay in sync,
+    # every prompt renders, and no prompt body drifts from its agent. Fast, no services.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - run: pip install uv
+      - run: uv sync --all-extras
+      - name: Prompt registry + loader consistency
+        run: uv run pytest tests/unit/test_prompt_registry.py tests/unit/test_prompt_loader.py -q
+
   test:
     runs-on: ubuntu-latest
     services:

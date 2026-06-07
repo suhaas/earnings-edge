@@ -17,4 +17,6 @@ class Settings(BaseSettings):
         env_file = ".env"
 
 
-settings = Settings()
+# Required fields are populated from the environment / .env at runtime by
+# pydantic-settings, so the no-arg construction is valid despite mypy's view.
+settings = Settings()  # type: ignore[call-arg]

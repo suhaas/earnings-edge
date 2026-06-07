@@ -1,18 +1,35 @@
-# Docker build artifacts
+# Python build artifacts
 *.pyc
 __pycache__
 .pytest_cache
 .mypy_cache
 .ruff_cache
+*.egg-info
 venv/
 .venv/
 
-# Environment
+# Secrets & local env (NEVER ship these)
 .env
 .env.local
+.env.*.local
 
-# Large files
+# Local runtime artifacts
+*.db
+data/
+*.log
+
+# VCS / tooling / editor (not needed in the image, shrinks build context)
+.git/
+.github/
+.vscode/
+.claude/
+.devcontainer/
+docs/
+tests/
+
+# Large archives
 *.tar.gz
 *.zip
-uv.lock
-data/
+
+# NOTE: uv.lock is intentionally NOT ignored — the Dockerfile needs it
+# (`COPY pyproject.toml uv.lock` + `uv export --frozen`) for a reproducible build.

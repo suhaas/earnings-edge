@@ -59,6 +59,12 @@ make trace
 docker-compose up
 ```
 
+> **Checkpoints:** by default `run` uses a local SQLite file + in-memory store
+> (prints `[checkpoint] local SQLite + in-memory store (non-durable)`). Set
+> `DATABASE_URL=postgres://…` (and `docker compose up -d postgres`) to switch to the
+> durable Postgres backend — or pick the **"Python: Main (Postgres)"** VS Code launch
+> config. If Postgres is unreachable, it falls back to SQLite with a warning.
+
 ## Project Structure
 
 See [AGENTS.md](AGENTS.md) or [.github/copilot-instructions.md](.github/copilot-instructions.md) for the complete project structure and conventions.

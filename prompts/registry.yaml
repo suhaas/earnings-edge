@@ -1,33 +1,40 @@
 roles:
-  supervisor:
+  delivery:
     active_version: v1
     versions:
       v1:
         date: "2026-02-05"
         author: "system"
         eval_score: 0.0
-  researcher:
+  evaluation:
     active_version: v1
     versions:
       v1:
         date: "2026-02-05"
         author: "system"
         eval_score: 0.0
-  analyst:
+  ingestion:
     active_version: v1
     versions:
       v1:
         date: "2026-02-05"
         author: "system"
         eval_score: 0.0
-  coder:
+  kpi:
     active_version: v1
     versions:
       v1:
         date: "2026-02-05"
         author: "system"
         eval_score: 0.0
-  critic:
+  sentiment:
+    active_version: v1
+    versions:
+      v1:
+        date: "2026-02-05"
+        author: "system"
+        eval_score: 0.0
+  synthesis:
     active_version: v1
     versions:
       v1:

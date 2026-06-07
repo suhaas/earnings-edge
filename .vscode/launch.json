@@ -3,35 +3,55 @@
   "configurations": [
     {
       "name": "Python: Main",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/src/agentic_app/main.py",
+      "args": ["run", "--ticker", "NVDA", "--year", "2025", "--quarter", "4"],
       "console": "integratedTerminal",
       "justMyCode": false,
+      "envFile": "${workspaceFolder}/.env",
       "env": {
         "PYTHONPATH": "${workspaceFolder}/src"
       }
     },
     {
+      // Same as "Python: Main" but forces the durable Postgres checkpoint backend.
+      // Requires the container first: `docker compose up -d postgres`.
+      "name": "Python: Main (Postgres)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/agentic_app/main.py",
+      "args": ["run", "--ticker", "NVDA", "--year", "2025", "--quarter", "4"],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src",
+        "DATABASE_URL": "postgresql://agentic:dev-password@localhost:5432/earnings_edge"
+      }
+    },
+    {
       "name": "Python: Tests",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "module": "pytest",
       "args": ["tests/", "-v", "-s"],
       "console": "integratedTerminal",
       "justMyCode": false,
+      "envFile": "${workspaceFolder}/.env",
       "env": {
         "PYTHONPATH": "${workspaceFolder}/src"
       }
     },
     {
       "name": "Python: FastAPI",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "module": "uvicorn",
       "args": ["agentic_app.api.app:app", "--reload", "--host", "0.0.0.0", "--port", "8000"],
       "console": "integratedTerminal",
       "justMyCode": false,
+      "envFile": "${workspaceFolder}/.env",
       "env": {
         "PYTHONPATH": "${workspaceFolder}/src"
       }

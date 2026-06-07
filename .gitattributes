@@ -1,0 +1,19 @@
+# Normalize line endings: store everything as LF in the repo (Linux/Docker/CI),
+# regardless of each contributor's core.autocrlf setting.
+* text=auto eol=lf
+
+# Scripts that MUST stay LF to run in Linux containers / CI
+*.sh text eol=lf
+Dockerfile text eol=lf
+Makefile text eol=lf
+
+# Treat binary assets as binary (never line-ending converted)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.gz binary
+*.zip binary
+*.pdf binary
+*.db binary
