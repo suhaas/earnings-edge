@@ -69,4 +69,4 @@ description: "Rules for system prompts: immutable versioning, composition, guard
 
 - **Editing shipped versions**: NEVER change v1.md if it's in production
 - **Vague descriptions**: Every prompt change should have clear rationale in PR description
-- **No eval before merge**: Prompt changes must run eval.yml CI gate
+- **No eval before merge**: Prompt changes must run the `ci.yml` eval-gate CI gate

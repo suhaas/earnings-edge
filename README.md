@@ -115,7 +115,7 @@ See [.github/pull_request_template.md](.github/pull_request_template.md) for PR 
 
 Key points:
 - All code must pass `make lint` and `make test`
-- Prompt changes must run eval gate (eval.yml)
+- Prompt changes must run the eval gate (the `eval-gate` job in `ci.yml`)
 - Evals must not regress vs. main branch
 - CODEOWNERS required for prompts/ and agents/
 
