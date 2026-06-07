@@ -17,24 +17,24 @@ install:
 	uv sync --all-extras
 
 lint:
-	ruff check src tests
-	mypy src
+	uv run ruff check src tests
+	uv run mypy src
 
 format:
-	ruff format src tests
-	ruff check --fix src tests
+	uv run ruff format src tests
+	uv run ruff check --fix src tests
 
 test:
-	pytest tests/ -v
+	uv run pytest tests/ -v
 
 eval:
-	python evals/run.py
+	uv run python evals/run.py
 
 run:
-	python -m agentic_app.main
+	uv run python -m agentic_app.main run
 
 trace:
-	LANGSMITH_TRACING=true OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 python -m agentic_app.main
+	LANGSMITH_TRACING=true OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 uv run python -m agentic_app.main run
 
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} +

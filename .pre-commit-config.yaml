@@ -3,19 +3,19 @@ repos:
     hooks:
       - id: ruff-check
         name: ruff check
-        entry: ruff check
+        entry: uv run ruff check
         language: system
         types: [python]
-        
+
       - id: ruff-format
         name: ruff format
-        entry: ruff format
+        entry: uv run ruff format
         language: system
         types: [python]
-        
+
       - id: mypy
         name: mypy
-        entry: mypy
+        entry: uv run mypy
         language: system
         types: [python]
         args: [--strict]
@@ -31,7 +31,7 @@ repos:
       # the registry, the loader, or a prompt test changes.
       - id: prompt-consistency
         name: prompt registry + loader consistency
-        entry: pytest tests/unit/test_prompt_registry.py tests/unit/test_prompt_loader.py -q
+        entry: uv run pytest tests/unit/test_prompt_registry.py tests/unit/test_prompt_loader.py -q
         language: system
         pass_filenames: false
         files: ^(prompts/|src/agentic_app/prompts/|src/agentic_app/agents/|tests/unit/test_prompt_).*
