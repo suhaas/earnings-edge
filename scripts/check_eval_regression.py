@@ -8,12 +8,12 @@ def check_regression(report_file: str) -> int:
     """Exit with code 1 if regression detected."""
     with open(report_file) as f:
         report = json.load(f)
-    
+
     if report.get("delta", 0) < 0:
-        print(f"❌ Eval regression detected: {report['delta']:.3f}")
+        print(f"FAIL: eval regression detected: {report['delta']:.3f}")
         return 1
-    
-    print(f"✅ Eval passed: {report['current_score']:.3f}")
+
+    print(f"OK: eval passed: {report['current_score']:.3f}")
     return 0
 
 

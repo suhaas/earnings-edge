@@ -67,6 +67,10 @@ data/
 !data/fixtures/
 .embeddings_cache/
 
+# Runtime artifacts (local SQLite checkpoints created by `make run`)
+*.db
+earningsedge.db
+
 # Logs
 logs/
 *.log
