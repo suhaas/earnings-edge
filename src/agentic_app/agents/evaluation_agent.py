@@ -22,15 +22,21 @@ def _judge() -> Any:
 
 
 def evaluate_node(state: EarningsState) -> dict[str, Any]:
-    context = {
+    # The ground-truth source the brief must be faithful to.
+    ground_truth = {
         "transcript": (state.get("transcript_prepared", "") + state.get("transcript_qa", ""))[
             :12000
         ],
         "kpis": (state.get("kpis") or [{}])[-1],
     }
+    # HALLUCINATION_PROMPT requires four fields: inputs, outputs, context, reference_outputs.
+    # We have no gold reference brief, so reference_outputs is empty — grounding is judged
+    # against `context` (the transcript + KPIs).
     res = _judge()(
-        inputs=str(context),
+        inputs=f"Earnings brief for {state['ticker']} Q{state['quarter']} FY{state['year']}",
         outputs=state.get("brief_markdown", ""),
+        context=str(ground_truth),
+        reference_outputs="",
     )
     raw = res.get("score")
     score = 1.0 if raw is True else 0.0 if raw is False else float(raw)

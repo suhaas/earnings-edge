@@ -2,7 +2,29 @@
 
 from __future__ import annotations
 
+import io
+import sys
+
+import truststore
 import typer
+from dotenv import load_dotenv
+
+# Force UTF-8 console output so LLM-generated briefs (em-dashes, smart quotes, bullets,
+# currency/percent symbols) and any Unicode print cleanly on Windows' legacy cp1252
+# console instead of raising UnicodeEncodeError mid-output.
+for _stream in (sys.stdout, sys.stderr):
+    if isinstance(_stream, io.TextIOWrapper):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+
+# Load .env at IMPORT time — before any command imports the graph, which pulls in
+# transformers/huggingface_hub. Those read env-driven settings (e.g. HF_HUB_OFFLINE)
+# at *their* import time, so the values must already be in os.environ here.
+load_dotenv()
+
+# Route all outbound HTTPS (httpx/requests: Anthropic, yfinance, SEC, Composio, ...)
+# through the OS certificate store so the app works behind a TLS-inspecting proxy/AV.
+# Must run before any TLS client is constructed.
+truststore.inject_into_ssl()
 
 app = typer.Typer()
 
