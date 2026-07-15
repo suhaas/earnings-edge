@@ -103,7 +103,7 @@ dev = [
 minversion = "7.0"
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "--cov=src/agentic_app --cov-report=term-missing --import-mode=importlib"
+addopts = "--cov=src/agentic_app --cov-report=term-missing --cov-fail-under=60 --import-mode=importlib"
 
 [tool.mypy]
 python_version = "3.11"
