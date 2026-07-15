@@ -1,7 +1,15 @@
 # ADR-0002: Tools vs. Skills Boundary
 
-**Status**: Accepted
+**Status**: **Superseded by ADR-0008**
 **Date**: 2026-02-05
+
+> **Superseded (2026-07-15).** Every load-bearing claim below is now false: all six named examples
+> (`web_search`, `code_exec`, `file_io`, `web_research`, `code_execution`) are deleted scaffold
+> artifacts; **zero tools exist**; **no agent loads a skill at runtime**; and `src/tools/` is the
+> wrong path (the package is `src/agentic_app/tools/`).
+>
+> See **ADR-0008**: skills are **design documents**, tools come from **Composio**.
+> Retained for history — do not implement against this.
 
 ## Context
 
