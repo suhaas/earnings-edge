@@ -9,12 +9,12 @@ skills/consensus-estimate-retrieval
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
 from agentic_app.agents import kpi_agent
-from agentic_app.orchestration.state import EarningsKPIs
+from agentic_app.orchestration.state import EarningsKPIs, EarningsState
 
 
 class _FakeExtractor:
@@ -43,7 +43,7 @@ def _install(
     return extractor
 
 
-def _state(**kw: Any) -> dict[str, Any]:
+def _state(**kw: Any) -> EarningsState:
     base: dict[str, Any] = {
         "ticker": "NVDA",
         "year": 2025,
@@ -52,7 +52,7 @@ def _state(**kw: Any) -> dict[str, Any]:
         "transcript_prepared": "TP",
     }
     base.update(kw)
-    return base
+    return cast(EarningsState, base)
 
 
 # --- _pct: surprise maths ---------------------------------------------------
@@ -103,24 +103,26 @@ def test_guidance_direction_thresholds(
         EarningsKPIs(eps_guidance_next_q=guide),
         {"consensus_eps": None, "consensus_revenue": None, "consensus_eps_next_q": 10.0},
     )
-    out = kpi_agent.kpi_node(_state())  # type: ignore[arg-type]
+    out = kpi_agent.kpi_node(_state())
     assert out["kpis"][0]["guidance_direction"] == expected
     assert out["kpis"][0]["has_guidance_raise"] is (expected == "raise")
 
 
-@pytest.mark.parametrize("language", ["We are raising guidance", "increased outlook", "above prior"])
+@pytest.mark.parametrize(
+    "language", ["We are raising guidance", "increased outlook", "above prior"]
+)
 def test_guidance_language_fallback_when_no_numeric_guide(
     monkeypatch: pytest.MonkeyPatch, language: str
 ) -> None:
     """With no numeric guidance, fall back to keywords: 'rais', 'increas', 'above'."""
     _install(monkeypatch, EarningsKPIs(guidance_language=language))
-    out = kpi_agent.kpi_node(_state())  # type: ignore[arg-type]
+    out = kpi_agent.kpi_node(_state())
     assert out["kpis"][0]["guidance_direction"] == "raise"
 
 
 def test_guidance_defaults_to_none_when_nothing_is_known(monkeypatch: pytest.MonkeyPatch) -> None:
     _install(monkeypatch, EarningsKPIs())
-    out = kpi_agent.kpi_node(_state())  # type: ignore[arg-type]
+    out = kpi_agent.kpi_node(_state())
     assert out["kpis"][0]["guidance_direction"] == "none"
     assert out["kpis"][0]["has_guidance_raise"] is False
 
@@ -132,7 +134,7 @@ def test_numeric_guidance_wins_over_language(monkeypatch: pytest.MonkeyPatch) ->
         EarningsKPIs(eps_guidance_next_q=9.0, guidance_language="raising guidance"),
         {"consensus_eps": None, "consensus_revenue": None, "consensus_eps_next_q": 10.0},
     )
-    out = kpi_agent.kpi_node(_state())  # type: ignore[arg-type]
+    out = kpi_agent.kpi_node(_state())
     assert out["kpis"][0]["guidance_direction"] == "cut"
 
 
@@ -145,7 +147,7 @@ def test_node_merges_kpis_consensus_and_derived_fields(monkeypatch: pytest.Monke
         EarningsKPIs(eps_actual=11.0, revenue_actual=110.0),
         {"consensus_eps": 10.0, "consensus_revenue": 100.0, "consensus_eps_next_q": None},
     )
-    out = kpi_agent.kpi_node(_state())  # type: ignore[arg-type]
+    out = kpi_agent.kpi_node(_state())
     k = out["kpis"][0]
     assert k["eps_actual"] == 11.0  # from EarningsKPIs
     assert k["consensus_eps"] == 10.0  # from _consensus
@@ -156,7 +158,7 @@ def test_node_merges_kpis_consensus_and_derived_fields(monkeypatch: pytest.Monke
 def test_node_returns_a_single_element_list(monkeypatch: pytest.MonkeyPatch) -> None:
     """`kpis` has an operator.add reducer — the node appends exactly one entry."""
     _install(monkeypatch, EarningsKPIs())
-    assert len(kpi_agent.kpi_node(_state())["kpis"]) == 1  # type: ignore[arg-type]
+    assert len(kpi_agent.kpi_node(_state())["kpis"]) == 1
 
 
 def test_extractor_failure_is_captured_as_an_error_not_raised(
@@ -169,7 +171,7 @@ def test_extractor_failure_is_captured_as_an_error_not_raised(
             raise RuntimeError("rate limited")
 
     monkeypatch.setattr(kpi_agent, "_extractor", lambda: _Boom())
-    out = kpi_agent.kpi_node(_state())  # type: ignore[arg-type]
+    out = kpi_agent.kpi_node(_state())
     assert out["kpis"] == [{}]
     assert len(out["errors"]) == 1
     assert "rate limited" in out["errors"][0]
@@ -178,6 +180,6 @@ def test_extractor_failure_is_captured_as_an_error_not_raised(
 def test_input_text_is_truncated_to_18000_chars(monkeypatch: pytest.MonkeyPatch) -> None:
     """A whole call must fit the context window — the cap is why RAG isn't needed (ADR-0007)."""
     extractor = _install(monkeypatch, EarningsKPIs())
-    kpi_agent.kpi_node(_state(press_release_text="x" * 50_000))  # type: ignore[arg-type]
+    kpi_agent.kpi_node(_state(press_release_text="x" * 50_000))
     user = extractor.last_messages[1]
     assert len(user["content"]) == 18_000
