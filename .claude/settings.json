@@ -1,23 +1,24 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
     "UV_SYSTEM_CERTS": "1"
   },
+  "model": "claude-opus-4-8",
+  "effortLevel": "high",
   "permissions": {
     "allow": [
-      "file.read",
-      "file.write",
-      "file.create",
-      "file.delete",
-      "terminal.create",
-      "terminal.execute",
-      "web.access"
+      "Read",
+      "Edit",
+      "Write",
+      "Grep",
+      "Glob",
+      "Bash(uv run *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)"
     ],
-    "deny": []
-  },
-  "defaultModel": "claude-3-5-sonnet-20241022",
-  "attributionRequired": true,
-  "editorIntegration": {
-    "autoSave": true,
-    "formatOnSave": true
+    "deny": [
+      "Read(.env)"
+    ]
   }
 }
