@@ -23,11 +23,27 @@ wrong — the package is `src/agentic_app/tools/`, the same drift class ADR-0004
 only in *code comments*. They were hand-implemented into the agent modules by humans and coding
 agents. "Agents can compose skills ad-hoc" never happened.
 
-What is actually true is better than what the ADR claimed. The 13 skills are **faithfully
-implemented** — `signal-synthesis-scoring`'s weights match `synthesis_agent.py` digit-for-digit;
-`consensus-estimate-retrieval`'s yfinance fallback is implemented verbatim;
+What is actually true is better than what the ADR claimed. The 13 skills are **closely
+implemented**: `consensus-estimate-retrieval`'s yfinance fallback is implemented verbatim, and
 `grounding-faithfulness-eval`'s "threshold 0.8, max 2 revisions" matches `route_after_eval` exactly.
-The skills are an excellent, accurate design corpus. They are just not a *runtime* mechanism.
+The skills are a good, largely accurate design corpus. They are just not a *runtime* mechanism.
+
+**But "largely" is doing real work in that sentence, and it is the strongest argument for this ADR.**
+`signal-synthesis-scoring`'s five *weights* match `synthesis_agent.py` digit-for-digit — and two of
+its *transforms* do not:
+
+| | Skill (`SKILL.md:26`) | Code (`synthesis_agent.py:32-33`) |
+|---|---|---|
+| sentiment | `0.20*sentiment_surprise` | `0.20 * sentiment_surprise * 3` — undocumented 3× amplification |
+| certainty | `0.10*net_certainty_qa` | `0.10 * _z(net_certainty_qa, 5)` — skill says raw |
+
+Likewise `hedging-certainty-features` asks for ratios computed **separately** for prepared remarks
+vs Q&A ("Q&A hedging spikes are the signal"); the code computes Q&A only.
+
+Because the skills are *documents*, nothing detected any of this — a skill cannot fail a test.
+Both drifts are now pinned by named guards in `tests/unit/test_agents/`, which is the only mechanism
+that can. This is precisely why the boundary needs recording: skills are **specs**, and specs need
+**tests** to stay true, not good intentions.
 
 And real tools do exist — they come from **Composio**, bound dynamically in `delivery_agent.py:54`
 (`session.tools()` → LangChain `StructuredTool`s → `create_agent`). They never touch `tools/`.
