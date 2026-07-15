@@ -2,6 +2,20 @@
 
 **Status**: Accepted
 **Date**: 2026-02-05
+**Amended by**: ADR-0006 (persistence)
+
+> **Amendment note (2026-07-15).** The core decision — LangGraph, StateGraph, conditional edges —
+> still holds. Two claims below have drifted from the code:
+>
+> - **"PostgreSQL checkpoints for persistence"** — Postgres is opt-in, not the default. `main.py`
+>   defaults to SQLite and falls back to it silently. **ADR-0006** ratifies that and fixes the
+>   durability bug it caused.
+> - **"Observability: Built-in LangSmith integration"** — true only when `LANGSMITH_TRACING=true`
+>   (off by default); nothing in-repo consumes it. See **ADR-0010**.
+>
+> This ADR does **not** specify supervisor-vs-pipeline. The topology is a **fixed pipeline** with one
+> conditional edge — see `docs/architecture.md`. That omission is why supervisor/researcher fossils
+> survived across the docs for so long.
 
 ## Context
 
