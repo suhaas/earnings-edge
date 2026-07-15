@@ -11,11 +11,13 @@ vs Q&A ("Q&A hedging spikes are the signal"), but the code only computes them fo
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import pytest
+from langgraph.store.base import BaseStore
 
 from agentic_app.agents import sentiment_agent
+from agentic_app.orchestration.state import EarningsState
 
 
 class _Item:
@@ -49,14 +51,15 @@ def fake_tone(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sentiment_agent, "_tone", _tone)
 
 
-def _state(**kw: Any) -> dict[str, Any]:
+def _state(**kw: Any) -> EarningsState:
     base: dict[str, Any] = {"ticker": "NVDA", "transcript_prepared": "", "transcript_qa": ""}
     base.update(kw)
-    return base
+    return cast(EarningsState, base)
 
 
-def _run(state: dict[str, Any], store: _FakeStore) -> dict[str, Any]:
-    return sentiment_agent.sentiment_node(state, {}, store=store)["sentiment"][0]  # type: ignore[arg-type]
+def _run(state: EarningsState, store: _FakeStore) -> dict[str, Any]:
+    out = sentiment_agent.sentiment_node(state, {}, store=cast(BaseStore, store))
+    return cast(dict[str, Any], out["sentiment"][0])
 
 
 # --- _ratios: hedging / certainty per 1000 tokens ---------------------------
@@ -106,7 +109,9 @@ def test_current_tone_is_an_even_blend_of_prepared_and_qa(fake_tone: None) -> No
 
 def test_net_certainty_is_certainty_minus_hedge(fake_tone: None) -> None:
     out = _run(_state(transcript_qa="we will definitely may"), _FakeStore())
-    assert out["net_certainty_qa"] == pytest.approx(out["certainty_ratio_qa"] - out["hedge_ratio_qa"])
+    assert out["net_certainty_qa"] == pytest.approx(
+        out["certainty_ratio_qa"] - out["hedge_ratio_qa"]
+    )
 
 
 def test_ratios_are_only_computed_for_qa(fake_tone: None) -> None:
@@ -161,5 +166,5 @@ def test_store_is_searched_by_ticker_namespace_with_an_8_quarter_window(fake_ton
 
 def test_node_returns_a_single_element_list(fake_tone: None) -> None:
     """`sentiment` has an operator.add reducer — the node appends exactly one entry."""
-    out = sentiment_agent.sentiment_node(_state(), {}, store=_FakeStore())  # type: ignore[arg-type]
+    out = sentiment_agent.sentiment_node(_state(), {}, store=cast(BaseStore, _FakeStore()))
     assert len(out["sentiment"]) == 1

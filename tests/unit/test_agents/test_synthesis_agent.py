@@ -21,11 +21,12 @@ runs — it only touches the filesystem.
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
 from agentic_app.agents import synthesis_agent
+from agentic_app.orchestration.state import EarningsState
 
 
 class _FakeMessage:
@@ -51,10 +52,18 @@ def fake_llm(monkeypatch: pytest.MonkeyPatch) -> _FakeLLM:
     return llm
 
 
-def _state(**kw: Any) -> dict[str, Any]:
-    base: dict[str, Any] = {"ticker": "NVDA", "year": 2025, "quarter": 4, "sentiment": [{}], "kpis": [{}]}
+def _state(**kw: Any) -> EarningsState:
+    """Build an EarningsState. Cast rather than `# type: ignore`, so these tests type-check
+    whether or not mypy can resolve the package (the pre-commit hook currently cannot)."""
+    base: dict[str, Any] = {
+        "ticker": "NVDA",
+        "year": 2025,
+        "quarter": 4,
+        "sentiment": [{}],
+        "kpis": [{}],
+    }
     base.update(kw)
-    return base
+    return cast(EarningsState, base)
 
 
 # --- _z ---------------------------------------------------------------------
@@ -82,7 +91,7 @@ def test_z_treats_zero_as_zero_not_none() -> None:
 
 
 def test_all_inputs_absent_scores_zero_neutral_with_floor_confidence(fake_llm: _FakeLLM) -> None:
-    out = synthesis_agent.synthesize_node(_state())  # type: ignore[arg-type]
+    out = synthesis_agent.synthesize_node(_state())
     sig = out["signal"]
     assert sig["score"] == 0.0
     assert sig["direction"] == "neutral"
@@ -91,16 +100,14 @@ def test_all_inputs_absent_scores_zero_neutral_with_floor_confidence(fake_llm: _
 
 def test_score_is_100_tanh_of_the_weighted_sum(fake_llm: _FakeLLM) -> None:
     """Golden: a max-positive EPS surprise alone. Weights restated literally on purpose."""
-    out = synthesis_agent.synthesize_node(  # type: ignore[arg-type]
-        _state(kpis=[{"eps_surprise_pct": 100.0}])
-    )
+    out = synthesis_agent.synthesize_node(_state(kpis=[{"eps_surprise_pct": 100.0}]))
     expected_raw = 0.35 * 3  # _z(100, 10) clamps to 3
     assert out["signal"]["score"] == round(100 * math.tanh(expected_raw), 1)
 
 
 def test_every_weighted_term_contributes(fake_llm: _FakeLLM) -> None:
     """All five terms at once — catches a dropped or reordered term."""
-    out = synthesis_agent.synthesize_node(  # type: ignore[arg-type]
+    out = synthesis_agent.synthesize_node(
         _state(
             kpis=[
                 {
@@ -129,9 +136,7 @@ def test_sentiment_surprise_is_amplified_3x(fake_llm: _FakeLLM) -> None:
     If this fails, someone changed the amplification. Decide deliberately whether the code or
     skills/signal-synthesis-scoring/SKILL.md:26 is authoritative — do not just re-fit the test.
     """
-    out = synthesis_agent.synthesize_node(  # type: ignore[arg-type]
-        _state(sentiment=[{"sentiment_surprise": 0.5}])
-    )
+    out = synthesis_agent.synthesize_node(_state(sentiment=[{"sentiment_surprise": 0.5}]))
     amplified = round(100 * math.tanh(0.20 * 0.5 * 3), 1)
     unamplified = round(100 * math.tanh(0.20 * 0.5), 1)
     assert out["signal"]["score"] == amplified
@@ -140,7 +145,7 @@ def test_sentiment_surprise_is_amplified_3x(fake_llm: _FakeLLM) -> None:
 
 def test_net_certainty_is_z_scaled(fake_llm: _FakeLLM) -> None:
     """DRIFT GUARD: the code z-scales net_certainty_qa by 5; the skill uses it raw."""
-    out = synthesis_agent.synthesize_node(  # type: ignore[arg-type]
+    out = synthesis_agent.synthesize_node(
         _state(sentiment=[{"net_certainty_qa": 100.0}])  # raw would dominate; _z clamps to 3
     )
     assert out["signal"]["score"] == round(100 * math.tanh(0.10 * 3), 1)
@@ -158,15 +163,13 @@ def test_net_certainty_is_z_scaled(fake_llm: _FakeLLM) -> None:
     ],
 )
 def test_direction_thresholds(fake_llm: _FakeLLM, eps_surprise: float, expected: str) -> None:
-    out = synthesis_agent.synthesize_node(  # type: ignore[arg-type]
-        _state(kpis=[{"eps_surprise_pct": eps_surprise}])
-    )
+    out = synthesis_agent.synthesize_node(_state(kpis=[{"eps_surprise_pct": eps_surprise}]))
     assert out["signal"]["direction"] == expected
 
 
 def test_direction_is_neutral_inside_the_plus_minus_10_band(fake_llm: _FakeLLM) -> None:
     """A small positive score must still read neutral — the band is +/-10, not sign()."""
-    out = synthesis_agent.synthesize_node(  # type: ignore[arg-type]
+    out = synthesis_agent.synthesize_node(
         _state(kpis=[{"eps_surprise_pct": 1.0}])  # -> score ~ +3.5
     )
     assert 0 < out["signal"]["score"] < 10
@@ -177,7 +180,7 @@ def test_direction_is_neutral_inside_the_plus_minus_10_band(fake_llm: _FakeLLM) 
 
 
 def test_confidence_counts_non_none_inputs_and_quarters(fake_llm: _FakeLLM) -> None:
-    out = synthesis_agent.synthesize_node(  # type: ignore[arg-type]
+    out = synthesis_agent.synthesize_node(
         _state(
             kpis=[
                 {
@@ -194,7 +197,7 @@ def test_confidence_counts_non_none_inputs_and_quarters(fake_llm: _FakeLLM) -> N
 
 
 def test_confidence_is_capped_at_one(fake_llm: _FakeLLM) -> None:
-    out = synthesis_agent.synthesize_node(  # type: ignore[arg-type]
+    out = synthesis_agent.synthesize_node(
         _state(
             kpis=[
                 {
@@ -211,7 +214,7 @@ def test_confidence_is_capped_at_one(fake_llm: _FakeLLM) -> None:
 
 def test_zero_quarters_penalises_confidence(fake_llm: _FakeLLM) -> None:
     """The ADR-0006 bug in numbers: no sentiment history caps confidence at 0.85, not 0.95."""
-    out = synthesis_agent.synthesize_node(  # type: ignore[arg-type]
+    out = synthesis_agent.synthesize_node(
         _state(
             kpis=[
                 {
@@ -231,7 +234,7 @@ def test_zero_quarters_penalises_confidence(fake_llm: _FakeLLM) -> None:
 
 def test_reads_only_the_last_sentiment_and_kpi_entry(fake_llm: _FakeLLM) -> None:
     """Both are operator.add lists; synthesis must use [-1], not merge."""
-    out = synthesis_agent.synthesize_node(  # type: ignore[arg-type]
+    out = synthesis_agent.synthesize_node(
         _state(
             kpis=[{"eps_surprise_pct": -100.0}, {"eps_surprise_pct": 100.0}],
             sentiment=[{"sentiment_surprise": -9.0}, {}],
@@ -242,18 +245,18 @@ def test_reads_only_the_last_sentiment_and_kpi_entry(fake_llm: _FakeLLM) -> None
 
 def test_revision_count_passes_through_untouched(fake_llm: _FakeLLM) -> None:
     """graph.py's `revise` wrapper owns the increment; the node must not bump it."""
-    out = synthesis_agent.synthesize_node(_state(revision_count=1))  # type: ignore[arg-type]
+    out = synthesis_agent.synthesize_node(_state(revision_count=1))
     assert out["revision_count"] == 1
 
 
 def test_brief_is_returned_both_top_level_and_in_the_signal(fake_llm: _FakeLLM) -> None:
-    out = synthesis_agent.synthesize_node(_state())  # type: ignore[arg-type]
+    out = synthesis_agent.synthesize_node(_state())
     assert out["brief_markdown"] == "# Brief\n"
     assert out["signal"]["brief_markdown"] == "# Brief\n"
 
 
 def test_prompt_is_the_synthesis_role_and_carries_the_signal(fake_llm: _FakeLLM) -> None:
-    synthesis_agent.synthesize_node(_state(kpis=[{"eps_surprise_pct": 100.0}]))  # type: ignore[arg-type]
+    synthesis_agent.synthesize_node(_state(kpis=[{"eps_surprise_pct": 100.0}]))
     system, user = fake_llm.last_messages
     assert system["role"] == "system"
     assert system["content"].strip()  # rendered from prompts/synthesis/v1.md

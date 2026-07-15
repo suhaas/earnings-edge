@@ -15,11 +15,12 @@ behaviour. Do not resurrect constants from that comment.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
 from agentic_app.agents import evaluation_agent
+from agentic_app.orchestration.state import EarningsState
 
 
 class _FakeJudge:
@@ -32,7 +33,7 @@ class _FakeJudge:
         return self._result
 
 
-def _state(**kw: Any) -> dict[str, Any]:
+def _state(**kw: Any) -> EarningsState:
     base: dict[str, Any] = {
         "ticker": "NVDA",
         "year": 2025,
@@ -43,7 +44,7 @@ def _state(**kw: Any) -> dict[str, Any]:
         "brief_markdown": "# Brief",
     }
     base.update(kw)
-    return base
+    return cast(EarningsState, base)
 
 
 # --- route_after_eval: the graph's only conditional edge --------------------
@@ -64,7 +65,7 @@ def _state(**kw: Any) -> dict[str, Any]:
 )
 def test_routing_matrix(score: float, revisions: int, expected: str) -> None:
     state = {"grounding_score": score, "revision_count": revisions}
-    assert evaluation_agent.route_after_eval(state) == expected  # type: ignore[arg-type]
+    assert evaluation_agent.route_after_eval(state) == expected
 
 
 def test_threshold_is_0_8_not_0_7() -> None:
@@ -72,9 +73,10 @@ def test_threshold_is_0_8_not_0_7() -> None:
 
     0.75 must revise. If this fails, someone adopted the commented constant.
     """
-    assert evaluation_agent.route_after_eval(  # type: ignore[arg-type]
-        {"grounding_score": 0.75, "revision_count": 0}
-    ) == "revise"
+    assert (
+        evaluation_agent.route_after_eval({"grounding_score": 0.75, "revision_count": 0})
+        == "revise"
+    )
 
 
 def test_missing_score_fails_closed_and_revises() -> None:
@@ -82,13 +84,11 @@ def test_missing_score_fails_closed_and_revises() -> None:
 
     Opposite behaviour on a missing key — do not swap these.
     """
-    assert evaluation_agent.route_after_eval({}) == "revise"  # type: ignore[arg-type]
+    assert evaluation_agent.route_after_eval({}) == "revise"
 
 
 def test_missing_revision_count_is_treated_as_zero() -> None:
-    assert evaluation_agent.route_after_eval(  # type: ignore[arg-type]
-        {"grounding_score": 0.0}
-    ) == "revise"
+    assert evaluation_agent.route_after_eval({"grounding_score": 0.0}) == "revise"
 
 
 # --- evaluate_node: score coercion -----------------------------------------
@@ -99,7 +99,7 @@ def test_boolean_true_score_becomes_1() -> None:
     judge = _FakeJudge({"score": True, "comment": "grounded"})
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(evaluation_agent, "_judge", lambda: judge)
-        out = evaluation_agent.evaluate_node(_state())  # type: ignore[arg-type]
+        out = evaluation_agent.evaluate_node(_state())
     assert out["grounding_score"] == 1.0
     assert out["grounding_comment"] == "grounded"
 
@@ -108,21 +108,21 @@ def test_boolean_false_score_becomes_0() -> None:
     judge = _FakeJudge({"score": False, "comment": "hallucinated"})
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(evaluation_agent, "_judge", lambda: judge)
-        out = evaluation_agent.evaluate_node(_state())  # type: ignore[arg-type]
+        out = evaluation_agent.evaluate_node(_state())
     assert out["grounding_score"] == 0.0
 
 
 def test_float_score_passes_through(monkeypatch: pytest.MonkeyPatch) -> None:
     judge = _FakeJudge({"score": 0.42, "comment": ""})
     monkeypatch.setattr(evaluation_agent, "_judge", lambda: judge)
-    out = evaluation_agent.evaluate_node(_state())  # type: ignore[arg-type]
+    out = evaluation_agent.evaluate_node(_state())
     assert out["grounding_score"] == pytest.approx(0.42)
 
 
 def test_missing_comment_defaults_to_empty_string(monkeypatch: pytest.MonkeyPatch) -> None:
     judge = _FakeJudge({"score": 1.0})
     monkeypatch.setattr(evaluation_agent, "_judge", lambda: judge)
-    out = evaluation_agent.evaluate_node(_state())  # type: ignore[arg-type]
+    out = evaluation_agent.evaluate_node(_state())
     assert out["grounding_comment"] == ""
 
 
@@ -134,7 +134,7 @@ def test_judge_is_given_the_brief_as_output_and_transcript_as_context(
 ) -> None:
     judge = _FakeJudge({"score": 1.0, "comment": ""})
     monkeypatch.setattr(evaluation_agent, "_judge", lambda: judge)
-    evaluation_agent.evaluate_node(_state())  # type: ignore[arg-type]
+    evaluation_agent.evaluate_node(_state())
 
     assert judge.last_kwargs["outputs"] == "# Brief"
     assert "prepared" in judge.last_kwargs["context"]
@@ -146,7 +146,7 @@ def test_judge_is_given_the_brief_as_output_and_transcript_as_context(
 def test_context_transcript_is_truncated_to_12000_chars(monkeypatch: pytest.MonkeyPatch) -> None:
     judge = _FakeJudge({"score": 1.0, "comment": ""})
     monkeypatch.setattr(evaluation_agent, "_judge", lambda: judge)
-    evaluation_agent.evaluate_node(  # type: ignore[arg-type]
+    evaluation_agent.evaluate_node(
         _state(transcript_prepared="x" * 20_000, transcript_qa="y" * 20_000)
     )
     # The transcript value inside the context dict is capped at 12k.
@@ -157,7 +157,5 @@ def test_context_transcript_is_truncated_to_12000_chars(monkeypatch: pytest.Monk
 def test_only_the_last_kpi_entry_is_used_as_ground_truth(monkeypatch: pytest.MonkeyPatch) -> None:
     judge = _FakeJudge({"score": 1.0, "comment": ""})
     monkeypatch.setattr(evaluation_agent, "_judge", lambda: judge)
-    evaluation_agent.evaluate_node(  # type: ignore[arg-type]
-        _state(kpis=[{"eps_actual": 1.0}, {"eps_actual": 999.0}])
-    )
+    evaluation_agent.evaluate_node(_state(kpis=[{"eps_actual": 1.0}, {"eps_actual": 999.0}]))
     assert "999.0" in judge.last_kwargs["context"]
