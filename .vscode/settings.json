@@ -22,5 +22,6 @@
     "**/venv": true,
     "**/__pycache__": true,
     "**/.*cache": true
-  }
+  },
+  "makefile.configureOnOpen": false
 }
