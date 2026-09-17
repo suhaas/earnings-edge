@@ -183,4 +183,4 @@ Key points:
 
 ## License
 
-[Add your license here]
+MIT or Apache-2.0
