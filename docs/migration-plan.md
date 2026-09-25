@@ -122,6 +122,7 @@ PHASE 4 · BUILD           (additive · high complexity)
 PHASE 5 · RAISE           (behaviour CHANGE · needs baseline)
   #10 model upgrade → sonnet-5, drop temperature      ← #1, #11
   #11 evals: flip PLACEHOLDER=False                   ← ADR-0004 pre-authorises
+  #19 independent grounding judge (writer ≠ judge)    ← #1, #11
         │
         ▼
 PHASE 6 · SWEEP           (docs + hygiene · low)
@@ -266,6 +267,9 @@ mode that hid the mis-pin). Unknown role/tier now **raises `ModelError`**, mirro
 **⚠️ PR note:** this re-pins `balanced` from `claude-sonnet-5` → `claude-sonnet-4-5`. That is **not** a
 revert of `4bd5d07` — every ID it chose is valid. It decouples *wire the registry* from *change which model
 runs*. Say so, or a reviewer reads it as a regression.
+**⚠️ Judge-independence note:** `synthesis` and `evaluation` are **both** on `balanced` here **deliberately** —
+Phase 1 must stay behaviour-neutral. That leaves the brief's author and its grader on the *same* model; making
+the judge independent is a behaviour change tracked in **#19** (Phase 5). Do **not** re-tier `evaluation` in this issue.
 
 ---
 
@@ -479,7 +483,11 @@ the trajectory test) or wrap at the `checkpoint`/`main` boundary.
 narrow: the **circuit breaker** ("fast-fail after N failures") and, separately, third-party retry.
 
 **Target state.** `llm/retry.py` = circuit breaker only, applied at the registry seam (#1). Third-party
-retry is a **separate issue** — `tenacity` and `stamina` are both installed (transitively; declare one).
+resilience is a **separate issue**, and it is **two** concerns, not one: *reactive* retry/backoff on transient
+failures (yfinance 429, EDGAR/earningscall 5xx) via `tenacity` or `stamina` (both installed transitively;
+declare one), **and** *proactive* rate-limiting — an explicit client-side throttle honouring SEC's ~10 req/s
+courtesy limit **before** any ticker fan-out. Retry does not bound request rate; a limiter is required before
+batching. Both belong in a shared HTTP helper, **not** in `llm/`.
 
 **⚠️** `llm/` is vestigial: `anthropic_client.py` has 0 callers (#5 deletes it). Decide `llm/`'s fate in
 ADR-0009 before adding to it — the registry, retry, and `@traced` all want the **same seam**.
@@ -514,6 +522,10 @@ kpi/delivery lose `temperature=0` determinism and synthesis loses `0.2`. **That 
 **⚠️** This is a real behaviour change: `temperature=0` was presumably chosen for deterministic KPI
 extraction. Needs an eval baseline (#11) to measure.
 
+**⚠️ Re-couples writer and judge.** Bumping `balanced` moves **both** `synthesis` and `evaluation` to the same
+new model (`sonnet-5`), re-entrenching the correlated-failure mode that **#19** removes. Land this coordinated
+with #19 so the judge ends on a *different* model, not the same `sonnet-5`.
+
 **Acceptance criteria**
 - [ ] No `temperature` sent to Sonnet 5 (would 400)
 - [ ] Eval baseline recorded **before** and compared **after**
@@ -526,16 +538,18 @@ extraction. Needs an eval baseline (#11) to measure.
 **Problem.** `evals/run.py` has `PLACEHOLDER = True` and always exits 0. **The `eval-gate` job runs on
 every PR and is decorative** — it goes green on any PR, including one that genuinely regresses quality.
 ADR-0004 **pre-authorises** the flip. Also: `evals/suites/regression.yaml` binds to `agent: researcher`
-and `agent: supervisor` (don't exist); `datasets/researcher_qa.jsonl` is a fossil;
-`evals/scorers/llm_judge.py` **contains no LLM judge**; `scripts/check_eval_regression.py` is real but
-never invoked.
+and `agent: supervisor` (don't exist); `evals/datasets/` **does exist** but holds only stubs —
+`researcher_qa.jsonl` is a fossil and `end_to_end.jsonl` is a single generic line
+(`{"input": "Analyze earnings beat/miss for Q3", ...}`); `evals/scorers/llm_judge.py` **contains no LLM
+judge**; `scripts/check_eval_regression.py` is real but never invoked.
 
 **Target state.** Real datasets keyed `{ticker, year, quarter}`; a real `llm_judge`; wire
 `check_eval_regression.py`; flip the flag.
 
 **Acceptance criteria**
 - [ ] A deliberately regressed prompt **fails** the gate (prove it isn't decorative)
-- [ ] `researcher_qa.jsonl` deleted; `regression.yaml` binds to real agents
+- [ ] Both stub datasets handled: `researcher_qa.jsonl` (fossil) **deleted** and `end_to_end.jsonl` **rewritten**
+      with real `{ticker, year, quarter}` cases; `regression.yaml` binds to real agents
 
 ---
 
@@ -777,6 +791,41 @@ Surfacing `errors` in the CLI overlaps with the observability work (#7) — keep
 
 ---
 
+### Issue #19 — Independent grounding judge (writer ≠ judge)
+
+**Problem.** The brief is *written* by `synthesis_agent.py:18` and *graded* by `evaluation_agent.py:19` on the
+**same model** — both resolve to the `balanced` tier (`claude-sonnet-4-5` today; #10 moves both to `sonnet-5`).
+A judge from the same family shares the writer's blind spots: a fluent, unsupported claim the writer is prone to
+emit is one the judge is prone to bless. This is a known correlated-failure mode of LLM-as-judge — and the one
+risk in the review deck's "Risks, in the order I'd fix them" with no issue behind it.
+
+**Target state.** `evaluation` resolves to a model **distinct** from `synthesis`.
+- **Cheap (in-registry):** point `evaluation` at the existing `deep` tier (`claude-opus-4-8`) — a different
+  model, no ADR change, no new provider. Reduces correlation; does not remove same-vendor bias.
+- **Strong (cross-family):** a non-Anthropic judge. Requires reopening ADR-0009's *"every tier is Anthropic by
+  construction"* decision — the `PROVIDER` constant, `qualified_id`, and **C4** (openevals wants an
+  `anthropic:`-prefixed string) all assume one vendor. `create_llm_as_judge` takes a provider-prefixed model
+  string, so a different prefix is the seam.
+
+**Files affected**
+- `src/agentic_app/config/models.py` — give `evaluation` its own tier (e.g. `Role(tier="deep")`) or a dedicated
+  `judge` tier; if cross-family, relax the single-provider assumption.
+- `agents/evaluation_agent.py:19` — already registry-driven after #1 (`resolve("evaluation").qualified_id`); no
+  further change for the in-registry path.
+- `tests/unit/test_model_registry.py` — assert `resolve("evaluation").id != resolve("synthesis").id`.
+- Eval baseline re-recorded — **this changes grounding scores**.
+
+**Acceptance criteria**
+- [ ] Writer and judge resolve to different model IDs (`resolve("synthesis").id != resolve("evaluation").id`)
+- [ ] Eval baseline recorded **before** and compared **after** — grounding-score movement is measured, not assumed
+- [ ] If cross-family: ADR-0009 amended to record the reopened single-provider decision
+
+**Related / sequencing:** Phase 5 (**behaviour change** — must not land in the behaviour-neutral Phase 1).
+Depends on **#1** (registry seam) and **#11** (real evals, to measure the effect). Coordinate with **#10**,
+which otherwise re-couples writer and judge onto the same `sonnet-5`.
+
+---
+
 ## DELIVERABLE 3 — ADRs + task checklist
 
 > House style: `docs/adr/0004` — name the drift, the failure mode, the rejected alternatives, and the exact
@@ -900,7 +949,10 @@ boundary input; this is trusted in-process data (frozen dataclass is right). *Pr
 tier is Anthropic by construction; it's a rendering, not config.
 
 **Consequences.** Wiring is behaviour-neutral **only because** `balanced` is pinned to `claude-sonnet-4-5`.
-FinBERT stays out (local pipeline; no tier/temperature/prefix semantics).
+FinBERT stays out (local pipeline; no tier/temperature/prefix semantics). The single-provider assumption
+(*"every tier is Anthropic by construction"*, above) is also what blocks a *different-family* grounding judge:
+**#19** (judge independence) either stays in-registry by pointing `evaluation` at a different Anthropic tier, or
+reopens that assumption — the `PROVIDER` constant, `qualified_id`, and **C4** — to go cross-vendor.
 
 ---
 
@@ -979,6 +1031,7 @@ PHASE 4 · BUILD
 PHASE 5 · RAISE
   [ ] #11 evals PLACEHOLDER=False   ← do BEFORE #10
   [ ] #10 model upgrade + drop temperature
+  [ ] #19 independent grounding judge (writer ≠ judge)   ← after #11
 
 PHASE 6 · SWEEP
   [ ] #12 runbooks · skills/README · .github/instructions · evals fossils
